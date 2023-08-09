@@ -16,7 +16,7 @@ import os
 import datetime
 
 URL = 'https://nid.naver.com/nidlogin.login?svctype=1&locale=ko_KR&url=https%3A%2F%2Fpartner.booking.naver.com%2Fbizes%2F947442%2Fbooking-list-view'
-
+os.makedirs('log', exist_ok=True)
 
 def main():
     try:
@@ -111,6 +111,13 @@ def login_naver_with_execute_script(driver, id, pw):
 def get_past_data(file_path):
     data = pandas.read_csv(file_path, header=0, encoding='utf-8')
     return data
+
+def time_in_range(start, end, x):
+    """Return true if x is in the range [start, end]"""
+    if start <= end:
+        return start <= x <= end
+    else:
+        return start <= x or x <= end
 
 def get_guest_list(driver):
     driver.execute_script("document.body.style.zoom='25%'")
@@ -225,20 +232,22 @@ def send_api(updated_list, url):
             cancel = "true"
 
         products = []
-        product_all = re.findall('(\D+)\s(\d)', updates['quantity'])
-        for product in product_all:
-            if product[0] == '입장권 대인' or '뮤지엄 패스권 대인':
+        product_all = updates['quantity'].split(',')
+        for product_ in product_all:
+            product = re.findall('(\D+)\s(\d)', product_)[0]
+            pp = product[0].strip()
+            if pp== '입장권 대인' or '뮤지엄 패스권 대인':
                 ticketType = 1
-            elif product[0] == '입장권 소인' or '뮤지엄 패스권 소인':
+            elif pp == '입장권 소인' or '뮤지엄 패스권 소인':
                 ticketType = 2
-            elif product[0] == '입장권 대인+AI패키지' or '뮤지엄+AI패키지 대인':
+            elif pp == '입장권 대인+AI패키지' or '뮤지엄+AI패키지 대인':
                 ticketType = 3
-            elif product[0] == '입장권 소인+AI패키지' or '뮤지엄+AI패키지 소인':
+            elif pp == '입장권 소인+AI패키지' or '뮤지엄+AI패키지 소인':
                 ticketType = 4
 
             products.append({
                 "ticketType": ticketType,
-                "ticketName": product[0],
+                "ticketName": pp,
                 "ticketCount": int(product[1])
             })
         reservation_time = convert_time(updates['time'])
@@ -268,7 +277,7 @@ def send_api(updated_list, url):
         create_log(logfile_path, json_message)
 
 
-schedule.every().hour.do(main)
+schedule.every(5).minutes.do(main)
 
 while True:
     schedule.run_pending()
