@@ -16,9 +16,11 @@ import os
 import datetime
 
 URL = 'https://nid.naver.com/nidlogin.login?svctype=1&locale=ko_KR&url=https%3A%2F%2Fpartner.booking.naver.com%2Fbizes%2F947442%2Fbooking-list-view'
-os.makedirs('log', exist_ok=True)
+os.makedirs('data_log', exist_ok=True)
+os.makedirs('api_log', exist_ok=True)
 
 def main():
+    today = str(datetime.datetime.today()).split(' ')[0]
     try:
         chrome_options = Options()
         chrome_options.headless = False
@@ -36,28 +38,29 @@ def main():
         current_data = get_guest_list(driver)
         currents = current_data.to_dict('records')
 
-        if os.path.exists('guest.csv'):
-            past_data = get_past_data('guest.csv')
+        if os.path.exists(f'data_log/guests.csv'):
+            past_data = get_past_data(f'data_log/guests.csv')
             pasts = past_data.to_dict('list')
             updated = []
             for current in currents:
                 if int(current['appointment']) not in pasts['appointment']:
                     updated.append(current)
 
-            send_api(updated, 'https://museumx.kr/api/management/save/reservation-info')
-            new = DataFrame(updated)
-            pandas.concat([past_data,new]).to_csv('guest.csv', header=True, index=False, encoding='utf-8')
+            success_list = send_api(updated, 'https://museumx.kr/api/management/save/reservation-info')
+            new = DataFrame.from_records(success_list)
+            pandas.concat([past_data,new]).to_csv(f'data_log/guests.csv', header=True, index=False, encoding='utf-8')
+
         else:
             # for current in currents:
             #     updated.append(current)
-            send_api(currents, 'https://museumx.kr/api/management/save/reservation-info')
-            current_data.to_csv('guest.csv', header=True, index=False, encoding='utf-8')
+            success_list = send_api(currents, 'https://museumx.kr/api/management/save/reservation-info')
+            # current_data.to_csv(f'data_log/guests.csv', header=True, index=False, encoding='utf-8')
+            DataFrame.from_records(success_list).to_csv(f'data_log/guests.csv', header=True, index=False, encoding='utf-8')
 
 
     except Exception as e:
         print(str(e))
-        today = str(datetime.datetime.today()).split(' ')[0]
-        logfile_path = f'log/{today}.txt'
+        logfile_path = f'api_log/{today}.txt'
         create_log(logfile_path, 'ERROR\n')
 
 
@@ -198,7 +201,8 @@ def convert_time(old_time):
         year, month, date = re.findall('(\d+)\.', old_time)
         hour, min = re.findall('(\d+)\:(\d+)', old_time)[0]
         if re.compile('\) ([가-힣]+)').findall(old_time)[0] == '오후':
-            hour = str(int(hour)+12)
+            if hour!='12':
+                hour = str(int(hour)+12)
 
         year = str(int(year)+2000)
         if len(month)==1:
@@ -224,8 +228,8 @@ def create_log(logfile_path, json_message):
         f.writelines(A)
 
 
-
 def send_api(updated_list, url):
+    success = []
     for updates in updated_list:
         cancel = "false"
         if updates['status'] == '취소':
@@ -258,6 +262,7 @@ def send_api(updated_list, url):
             [{
                 "status": updates['status'],
                 "name": updates['name'],
+                # "mobileNumber": '010-9637-6103',
                 "mobileNumber": updates['phone'],
                 "appointmentNumber": updates['appointment'],
                 "reservationTime": reservation_time,
@@ -269,18 +274,25 @@ def send_api(updated_list, url):
                 "quantity": products
             }]
         headers = {'serviceKey': 'test123'}
-        response = requests.post('https://museumx.kr/api/management/save/reservation-info', json=json_message, headers=headers, verify=False).json()
-        print(response)
+        try:
+            response = requests.post('https://museumx.kr/api/management/save/reservation-info', json=json_message, headers=headers, verify=False).json()
+            if response['message'] == '정상 처리':
+                success.append(updates)
+            print(f'Name: {updates["name"]}, Phone Number: {updates["phone"]}, Response: {response}')
+        except Exception as e:
+            print(e)
 
         today = str(datetime.datetime.today()).split(' ')[0]
-        logfile_path = f'log/{today}.txt'
+        logfile_path = f'api_log/{today}.txt'
         create_log(logfile_path, json_message)
+    time.sleep(2)
 
+    return success
 
-schedule.every(5).minutes.do(main)
-
-while True:
-    schedule.run_pending()
+# schedule.every(5).minutes.do(main)
 #
-# if __name__=='__main__':
-#     main()
+# while True:
+#     schedule.run_pending()
+#
+if __name__=='__main__':
+    main()
