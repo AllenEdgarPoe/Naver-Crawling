@@ -4,7 +4,7 @@ import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-
+from dateutil.parser import parse
 import pandas
 import os
 import json
@@ -38,8 +38,8 @@ def main():
         current_data = get_guest_list(driver)
         currents = current_data.to_dict('records')
 
-        if os.path.exists(f'data_log/guests.csv'):
-            past_data = get_past_data(f'data_log/guests.csv')
+        if os.path.exists(f'guests.csv'):
+            past_data = get_past_data(f'guests.csv')
             pasts = past_data.to_dict('list')
             updated = []
             for current in currents:
@@ -47,15 +47,15 @@ def main():
                     updated.append(current)
 
             success_list = send_api(updated, 'https://museumx.kr/api/management/save/reservation-info')
-            new = DataFrame.from_records(success_list)
-            pandas.concat([past_data,new]).to_csv(f'data_log/guests.csv', header=True, index=False, encoding='utf-8')
+            new = DataFrame(success_list)
+            pandas.concat([past_data,new]).to_csv(f'guests.csv', header=True, index=False, encoding='utf-8')
 
         else:
             # for current in currents:
             #     updated.append(current)
             success_list = send_api(currents, 'https://museumx.kr/api/management/save/reservation-info')
             # current_data.to_csv(f'data_log/guests.csv', header=True, index=False, encoding='utf-8')
-            DataFrame.from_records(success_list).to_csv(f'data_log/guests.csv', header=True, index=False, encoding='utf-8')
+            DataFrame(success_list).to_csv(f'guests.csv', header=True, index=False, encoding='utf-8')
 
 
     except Exception as e:
@@ -125,7 +125,7 @@ def time_in_range(start, end, x):
 def get_guest_list(driver):
     driver.execute_script("document.body.style.zoom='25%'")
     import time
-    for _ in range(10):
+    for _ in range(20):
         item = driver.find_elements(By.CLASS_NAME, 'BookingListView__list-contents__1mfa8')
         driver.execute_script("return arguments[0].scrollTo(0,100000);", item[0])
         time.sleep(1)
@@ -230,6 +230,7 @@ def create_log(logfile_path, json_message):
 
 def send_api(updated_list, url):
     success = []
+    fail = []
     for updates in updated_list:
         cancel = "false"
         if updates['status'] == '취소':
@@ -240,6 +241,10 @@ def send_api(updated_list, url):
         for product_ in product_all:
             product = re.findall('(\D+)\s(\d)', product_)[0]
             pp = product[0].strip()
+
+            hook_word = re.findall('AI', pp)
+            ticketType = 1
+            #AI는 1, 아니면 0
             if pp== '입장권 대인' or '뮤지엄 패스권 대인':
                 ticketType = 1
             elif pp == '입장권 소인' or '뮤지엄 패스권 소인':
@@ -248,6 +253,11 @@ def send_api(updated_list, url):
                 ticketType = 3
             elif pp == '입장권 소인+AI패키지' or '뮤지엄+AI패키지 소인':
                 ticketType = 4
+
+            # if len(hook_word)>0:
+            #     ticketType = 3
+            # else:
+            #     ticketType = 1
 
             products.append({
                 "ticketType": ticketType,
@@ -278,21 +288,44 @@ def send_api(updated_list, url):
             response = requests.post('https://museumx.kr/api/management/save/reservation-info', json=json_message, headers=headers, verify=False).json()
             if response['message'] == '정상 처리':
                 success.append(updates)
+            else:
+                print('Failed')
+                fail.append(updates)
             print(f'Name: {updates["name"]}, Phone Number: {updates["phone"]}, Response: {response}')
+            # print(f'Name: {updates["name"]}, Phone Number: {updates["phone"]}')
         except Exception as e:
             print(e)
 
         today = str(datetime.datetime.today()).split(' ')[0]
         logfile_path = f'api_log/{today}.txt'
-        create_log(logfile_path, json_message)
-    time.sleep(2)
+        text = f'Sent Message: {json_message} \n Response: {response}'
+        create_log(logfile_path, text)
+        # time.sleep(2)
 
     return success
 
-# schedule.every(5).minutes.do(main)
+def delete_past_data(file_path):
+    if os.path.exists(file_path):
+        guest_data = get_past_data(file_path)
+        new = []
+        old = []
+        for guest in guest_data.to_dict('records'):
+            reservation_time = parse(convert_time(guest['time']))
+            start = datetime.datetime.today() - datetime.timedelta(days=10)
+            if start<reservation_time:
+                new.append(guest)
+            else:
+                old.append(guest)
+        pandas.DataFrame(new).to_csv(file_path, mode='w', header=True, index=False, encoding='utf-8')
+        print(f"Deleted {len(old)} data older than past 10 days")
+
+# delete_past_data('guests.csv')
 #
-# while True:
-#     schedule.run_pending()
-#
-if __name__=='__main__':
-    main()
+schedule.every(5).minutes.do(main)
+
+while True:
+    schedule.run_pending()
+
+# if __name__=='__main__':
+#     main()
+#     delete_past_data('guests.csv')
