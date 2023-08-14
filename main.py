@@ -14,8 +14,8 @@ import requests
 import re
 import os
 import datetime
+import logging
 
-URL = 'https://nid.naver.com/nidlogin.login?svctype=1&locale=ko_KR&url=https%3A%2F%2Fpartner.booking.naver.com%2Fbizes%2F947442%2Fbooking-list-view'
 os.makedirs('data_log', exist_ok=True)
 os.makedirs('api_log', exist_ok=True)
 
@@ -23,11 +23,10 @@ def main():
     today = str(datetime.datetime.today()).split(' ')[0]
     try:
         chrome_options = Options()
-        chrome_options.headless = False
+        # chrome_options.headless = False
         driver = webdriver.Chrome(options=chrome_options)
-        driver.get(URL)
-
         config = get_config()
+        driver.get(config['url'])
 
         login_naver_with_execute_script(driver, config['userId'], config['userPw'])
         time.sleep(2)
@@ -46,14 +45,14 @@ def main():
                 if int(current['appointment']) not in pasts['appointment']:
                     updated.append(current)
 
-            success_list = send_api(updated, 'https://museumx.kr/api/management/save/reservation-info')
+            success_list = send_api(updated, config['api_path'])
             new = DataFrame(success_list)
             pandas.concat([past_data,new]).to_csv(f'guests.csv', header=True, index=False, encoding='utf-8')
 
         else:
             # for current in currents:
             #     updated.append(current)
-            success_list = send_api(currents, 'https://museumx.kr/api/management/save/reservation-info')
+            success_list = send_api(currents, config['api_path'])
             # current_data.to_csv(f'data_log/guests.csv', header=True, index=False, encoding='utf-8')
             DataFrame(success_list).to_csv(f'guests.csv', header=True, index=False, encoding='utf-8')
 
@@ -245,19 +244,19 @@ def send_api(updated_list, url):
             hook_word = re.findall('AI', pp)
             ticketType = 1
             #AI는 1, 아니면 0
-            if pp== '입장권 대인' or '뮤지엄 패스권 대인':
-                ticketType = 1
-            elif pp == '입장권 소인' or '뮤지엄 패스권 소인':
-                ticketType = 2
-            elif pp == '입장권 대인+AI패키지' or '뮤지엄+AI패키지 대인':
-                ticketType = 3
-            elif pp == '입장권 소인+AI패키지' or '뮤지엄+AI패키지 소인':
-                ticketType = 4
-
-            # if len(hook_word)>0:
-            #     ticketType = 3
-            # else:
+            # if pp== '입장권 대인' or '뮤지엄 패스권 대인':
             #     ticketType = 1
+            # elif pp == '입장권 소인' or '뮤지엄 패스권 소인':
+            #     ticketType = 2
+            # elif pp == '입장권 대인+AI패키지' or '뮤지엄+AI패키지 대인':
+            #     ticketType = 3
+            # elif pp == '입장권 소인+AI패키지' or '뮤지엄+AI패키지 소인':
+            #     ticketType = 4
+
+            if len(hook_word)>0:
+                ticketType = 3
+            else:
+                ticketType = 1
 
             products.append({
                 "ticketType": ticketType,
@@ -321,11 +320,11 @@ def delete_past_data(file_path):
 
 # delete_past_data('guests.csv')
 #
-schedule.every(5).minutes.do(main)
-
-while True:
-    schedule.run_pending()
-
-# if __name__=='__main__':
-#     main()
+# schedule.every(5).minutes.do(main)
+#
+# while True:
+#     schedule.run_pending()
+#
+if __name__=='__main__':
+    main()
 #     delete_past_data('guests.csv')
