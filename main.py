@@ -227,7 +227,7 @@ def create_log(logfile_path, json_message):
         f.writelines(A)
 
 
-def send_api(updated_list, url):
+def send_api(updated_list, api_path):
     success = []
     fail = []
     for updates in updated_list:
@@ -284,7 +284,7 @@ def send_api(updated_list, url):
             }]
         headers = {'serviceKey': 'test123'}
         try:
-            response = requests.post('https://museumx.kr/api/management/save/reservation-info', json=json_message, headers=headers, verify=False).json()
+            response = requests.post(api_path, json=json_message, headers=headers, verify=False).json()
             if response['message'] == '정상 처리':
                 success.append(updates)
             else:
