@@ -3,10 +3,12 @@
 
 ---
 <img width="1210" alt="smartplace" src="https://github.com/AllenEdgarPoe/Naver-Crawling/assets/43398106/c1d0f7d3-7112-4176-840a-2ba97a930c16">
+<br>
 
 업체가 네이버 스마트 플레이스 를 통해 예약 페이지를 만들면, 네이버 에서는 페이지 자체는 만들어주지만 **유저의 정보를 자동으로 데이터베이스화 해주진 않는다!** <br>
 엑셀로 만들어주는 기능이 있긴 한데, 업체가 어떤 조건을 만족하지 않으면 (연매출 1억 이하 라던지..) 엑셀 파일 다운 받아봤자 blank page 임. <br>
 따라서 열 받아서 만든 네이버 스마트 플레이스 용 웹 크롤러. <br>
+
 ---
 
 ## 기능 
@@ -32,4 +34,5 @@
 
 ### 여담 
 위시켓 보니까 관련 작업 2500만원에 외주 올라와있었음. 
+
 <img width="387" alt="외주" src="https://github.com/AllenEdgarPoe/Naver-Crawling/assets/43398106/001c47ed-5643-4d26-841a-b8d8d551df25">
