@@ -318,13 +318,13 @@ def delete_past_data(file_path):
         pandas.DataFrame(new).to_csv(file_path, mode='w', header=True, index=False, encoding='utf-8')
         print(f"Deleted {len(old)} data older than past 10 days")
 
-# delete_past_data('guests.csv')
+delete_past_data('guests.csv')
+
+schedule.every(5).minutes.do(main)
+
+while True:
+    schedule.run_pending()
 #
-# schedule.every(5).minutes.do(main)
-#
-# while True:
-#     schedule.run_pending()
-#
-if __name__=='__main__':
-    main()
+# if __name__=='__main__':
+#     main()
 #     delete_past_data('guests.csv')
