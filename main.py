@@ -2,8 +2,10 @@ import schedule
 from bs4 import BeautifulSoup
 import json
 from selenium import webdriver
+from selenium.common.exceptions import SessionNotCreatedException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from webdriver_auto_update.webdriver_auto_update import WebdriverAutoUpdate
 from dateutil.parser import parse
 import pandas
 import os
@@ -57,10 +59,20 @@ def main():
             DataFrame(success_list).to_csv(f'guests.csv', header=True, index=False, encoding='utf-8')
 
 
-    except Exception as e:
-        print(str(e))
+    # except Exception as e:
+    #
+    #     print(str(e))
+    #     logfile_path = f'api_log/{today}.txt'
+    #     create_log(logfile_path, 'ERROR\n')
+    except SessionNotCreatedException as e:
+        driver_manager = WebdriverAutoUpdate(r'C:\Users\xorbis\PycharmProjects\NaverWebCrawl\chromedriver.exe')
+        driver_manager.main()
         logfile_path = f'api_log/{today}.txt'
-        create_log(logfile_path, 'ERROR\n')
+        create_log(logfile_path, 'ChromeDriverUpdated')
+
+    except Exception as e:
+        logfile_path = f'api_log/{today}.txt'
+        create_log(logfile_path, f'Error: {e}')
 
 
 def check_existance(dict_of_values, df):
@@ -125,28 +137,16 @@ def get_guest_list(driver):
     driver.execute_script("document.body.style.zoom='25%'")
     import time
     for _ in range(20):
-        item = driver.find_elements(By.CLASS_NAME, 'BookingListView__list-contents__1mfa8')
+        # item = driver.find_elements(By.CLASS_NAME, 'BookingListView__list-contents__3pFPD')
+        item = driver.find_elements(By.XPATH, '//*[@id="app"]/div[1]/div[2]/div[2]/div/div[2]/div[4]/div[2]')
+        # item = driver.find_elements(By.CLASS_NAME, re.compile('BookingListView__list-contents__.*')) #3pFPD
         driver.execute_script("return arguments[0].scrollTo(0,100000);", item[0])
         time.sleep(1)
-    # desired_y = (element.size['height'] / 2) + element.location['y']
-    # window_h = driver.execute_script('return window.innerHeight')
-    # window_y = driver.execute_script('return window.pageYOffset')
-    # current_y = (window_h / 2) + window_y
-    # scroll_y_by = desired_y - current_y
-    #
-    # driver.execute_script("window.scrollBy(0, arguments[0]);", 1000000)
-    # driver.execute_script("return arguments[0].scrollTo(0,100);", item[0])
-    # driver.execute_script("return arguments[0].scrollIntoView();", item[-1])
-    # try:
-    #     driver.execute_script("return arguments[0].scrollIntoView();", item)
-    # except Exception as e:
-    #     pass
-    # item = driver.find_element_by_class_name('BookingListView__list-contents__1mfa8')
-    # item.location_once_scrolled_into_view
+
 
     soup = BeautifulSoup(driver.page_source, "html.parser")
-    table = soup.find_all("div", {"class": "BookingListView__table__2DWDa"})
-    div_list =table[0].find_all('div', attrs={'class': 'BookingListView__contents-inner__2lnqC d-flex flex-nowrap'})
+    table = soup.find_all("div", {"class" : re.compile('.*BookingListView__list-contents__.*')})
+    div_list =table[0].find_all('div', attrs={'class': re.compile('BookingListView__contents-inner__.* d-flex flex-nowrap')})
     # app > div.BaseLayout__root__2-HIX > div.BaseLayout__container__2nc4I > div.BaseLayout__contents__3w55v > div > div.BookingListView__root__3eW0M > div.BookingListView__list__3dEpl.BookingListView__table__2DWDa > div.BookingListView__list-contents__1mfa8
     INFO = {}
     status = []
@@ -162,18 +162,18 @@ def get_guest_list(driver):
     confirmation_time = []
     cancel_date = []
     for div in div_list:
-        status.append(div.find('div',{'class':'align-self-center BookingListView__cell__10Lyz BookingListView__state__2mcaw'}).get_text())
-        name.append(div.find('div',{'class':'align-self-center BookingListView__cell__10Lyz BookingListView__name__16_zV'}).get_text())
-        phone.append(div.find('div',{'class':'align-self-center BookingListView__cell__10Lyz BookingListView__phone__2IoIp'}).get_text())
-        appointment.append(div.find('div',{'class':'align-self-center BookingListView__cell__10Lyz BookingListView__book-number__pJ808'}).get_text())
-        time.append(div.find('div',{'class':'BookingListView__cell__10Lyz BookingListView__book-date__uvr59 align-self-center'}).get_text())
-        product.append(div.find('div',{'class':'BookingListView__cell__10Lyz BookingListView__host__2GgAn align-self-center'}).get_text())
-        quantity.append(div.find('div',{'class':'align-self-center BookingListView__cell__10Lyz BookingListView__option__2vC1Q'}).get_text())
-        payment_info.append(div.find('div',{'class':'align-self-center BookingListView__cell__10Lyz BookingListView__payment-state__2py52'}).get_text())
-        howmuch.append( div.find('div',{'class':'BookingListView__cell__10Lyz BookingListView__total-price__1_-_I align-self-center'}).get_text())
-        payment_data.append(div.find('div',{'class':'align-self-center BookingListView__cell__10Lyz BookingListView__order-date__2ARr_'}).get_text())
-        confirmation_time.append(div.find('div',{'class':'align-self-center BookingListView__cell__10Lyz BookingListView__order-success-date__1RvPL'}).get_text())
-        cancel_date.append(div.find('div',{'class':'align-self-center BookingListView__cell__10Lyz BookingListView__order-cancel-date__3JOfl'}).get_text())
+        status.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__state__.*')}).get_text())
+        name.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__name__.*')}).get_text())
+        phone.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__phone__.*')}).get_text())
+        appointment.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__book-number__.*')}).get_text())
+        time.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__book-date__.* align-self-center')}).get_text())
+        product.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__host__.* align-self-center')}).get_text())
+        quantity.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__option__.*')}).get_text())
+        payment_info.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__payment-state__.*')}).get_text())
+        howmuch.append( div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__total-price__.* align-self-center')}).get_text())
+        payment_data.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__order-date__.*')}).get_text())
+        confirmation_time.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__order-success-date__.*')}).get_text())
+        cancel_date.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__order-cancel-date__.*')}).get_text())
 
 
     INFO['status'] = status
@@ -324,7 +324,7 @@ schedule.every(5).minutes.do(main)
 
 while True:
     schedule.run_pending()
-#
+
 # if __name__=='__main__':
 #     main()
 #     delete_past_data('guests.csv')
