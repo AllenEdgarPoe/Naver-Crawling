@@ -16,14 +16,14 @@ import requests
 import re
 import os
 import datetime
-import logging
+from slack_api_send import send_error_message
 
 os.makedirs('data_log', exist_ok=True)
 os.makedirs('api_log', exist_ok=True)
 
 def main():
-    today = str(datetime.datetime.today()).split(' ')[0]
     try:
+        today = str(datetime.datetime.today()).split(' ')[0]
         chrome_options = Options()
         # chrome_options.headless = False
         driver = webdriver.Chrome(options=chrome_options)
@@ -59,20 +59,27 @@ def main():
             DataFrame(success_list).to_csv(f'guests.csv', header=True, index=False, encoding='utf-8')
 
 
-    # except Exception as e:
-    #
-    #     print(str(e))
-    #     logfile_path = f'api_log/{today}.txt'
-    #     create_log(logfile_path, 'ERROR\n')
+
     except SessionNotCreatedException as e:
+        send_error_message(f"Error Occured: {e}")
+        logfile_path = f'api_log/{today}.txt'
+        try:
+            driver_manager = WebdriverAutoUpdate(r'C:\Users\xorbis\PycharmProjects\NaverWebCrawl\chromedriver.exe')
+            driver_manager.main()
+            send_error_message('Successfully downloaded new chrome driver')
+            create_log(logfile_path, 'ChromeDriverUpdated')
+
+        except Exception as e:
+            send_error_message(f'Error while downloading chrome driver: {e}')
+            create_log(logfile_path, 'ChromeDriverUpdateFailure')
+
+    except Exception as e:
         driver_manager = WebdriverAutoUpdate(r'C:\Users\xorbis\PycharmProjects\NaverWebCrawl\chromedriver.exe')
         driver_manager.main()
         logfile_path = f'api_log/{today}.txt'
-        create_log(logfile_path, 'ChromeDriverUpdated')
-
-    except Exception as e:
-        logfile_path = f'api_log/{today}.txt'
         create_log(logfile_path, f'Error: {e}')
+        send_error_message(f"Error Occured: {e}")
+
 
 
 def check_existance(dict_of_values, df):
@@ -102,6 +109,7 @@ def login_naver(driver, id, pw):
     element.click()
 
     print('login succeeded')
+
     return
 
 
@@ -162,18 +170,18 @@ def get_guest_list(driver):
     confirmation_time = []
     cancel_date = []
     for div in div_list:
-        status.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__state__.*')}).get_text())
-        name.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__name__.*')}).get_text())
-        phone.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__phone__.*')}).get_text())
-        appointment.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__book-number__.*')}).get_text())
+        status.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__state__.*')}).get_text())
+        name.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__name__.*')}).get_text())
+        phone.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__phone__.*')}).get_text())
+        appointment.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__book-number__.*')}).get_text())
         time.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__book-date__.* align-self-center')}).get_text())
         product.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__host__.* align-self-center')}).get_text())
-        quantity.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__option__.*')}).get_text())
-        payment_info.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__payment-state__.*')}).get_text())
+        quantity.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__option__.*')}).get_text())
+        payment_info.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__payment-state__.*')}).get_text())
         howmuch.append( div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__total-price__.* align-self-center')}).get_text())
-        payment_data.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__order-date__.*')}).get_text())
-        confirmation_time.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__order-success-date__.*')}).get_text())
-        cancel_date.append(div.find('div',{'class':re.compile('align-self-center BookingListView__cell__.* BookingListView__order-cancel-date__.*')}).get_text())
+        payment_data.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__order-date__.*')}).get_text())
+        confirmation_time.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__order-success-date__.*')}).get_text())
+        cancel_date.append(div.find('div',{'class':re.compile('BookingListView__cell__.* BookingListView__order-cancel-date__.*')}).get_text())
 
 
     INFO['status'] = status
@@ -319,12 +327,12 @@ def delete_past_data(file_path):
         print(f"Deleted {len(old)} data older than past 10 days")
 
 delete_past_data('guests.csv')
-
 schedule.every(5).minutes.do(main)
-
 while True:
     schedule.run_pending()
 
 # if __name__=='__main__':
-#     main()
-#     delete_past_data('guests.csv')
+#     while True:
+#         main()
+#         time.sleep(3)
+    # delete_past_data('guests.csv')

@@ -2,6 +2,15 @@
 ### 네이버 스마트 플레이스 예매자 페이지 웹 크롤링 
 
 ---
+### 2023-10-17 Update
+
+윈도우에서 크롬을 업데이트 할 경우 크롬 드라이버도 같이 업데이트 함. 
+```commandline
+pip install webdriver-auto-update
+```
+
+
+---
 <img width="1210" alt="smartplace" src="https://github.com/AllenEdgarPoe/Naver-Crawling/assets/43398106/c1d0f7d3-7112-4176-840a-2ba97a930c16">
 <br>
 
