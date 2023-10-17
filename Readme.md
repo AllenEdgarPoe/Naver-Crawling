@@ -4,10 +4,13 @@
 ---
 ### 2023-10-17 Update
 
-윈도우에서 크롬을 업데이트 할 경우 크롬 드라이버도 같이 업데이트 함. 
+1. 윈도우에서 크롬을 업데이트 할 경우 크롬 드라이버도 같이 업데이트 함. 
 ```commandline
 pip install webdriver-auto-update
 ```
+
+2. 만약 에러가 났을 경우, Slack API 를 통해서 에러 메세지를 자동으로 보내줌. 
+더 자세한 설명은 [slack-api](https://api.slack.com/apps/A061HDMPE76/oauth?success=1) 로 알아보기. 
 
 
 ---
