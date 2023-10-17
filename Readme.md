@@ -35,7 +35,8 @@ pip install webdriver-auto-update
    {"url" : "로그인이 필요한 예약페이지 url",
    "api_path" : "api 호출 url",
    "userId": "네이버 아이디",
-   "userPw": "네이버 비번"
+   "userPw": "네이버 비번",
+   "slackToken": 전송할 slack authorization token
     }
    ```
 2. command line 에 ```python -m venv venv``` 로 새 가상환경 만듬. 
