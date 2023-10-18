@@ -25,12 +25,20 @@ def main():
     try:
         today = str(datetime.datetime.today()).split(' ')[0]
         chrome_options = Options()
-        # chrome_options.headless = False
+        chrome_options.add_argument('--incognito')
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-setuid-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
         driver = webdriver.Chrome(options=chrome_options)
         config = get_config()
         driver.get(config['url'])
 
-        login_naver_with_execute_script(driver, config['userId'], config['userPw'])
+        try:
+            login_naver_with_execute_script(driver, config['userId'], config['userPw'])
+        except Exception as e:
+            print(e)
         time.sleep(2)
 
         # driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
@@ -58,6 +66,7 @@ def main():
             # current_data.to_csv(f'data_log/guests.csv', header=True, index=False, encoding='utf-8')
             DataFrame(success_list).to_csv(f'guests.csv', header=True, index=False, encoding='utf-8')
 
+        driver.quit()
 
 
     except SessionNotCreatedException as e:
@@ -81,7 +90,6 @@ def main():
         send_error_message(f"Error Occured: {e}")
 
 
-
 def check_existance(dict_of_values, df):
     v = df.iloc[:, 0] == df.iloc[:, 0]
     for key, value in dict_of_values.items():
@@ -99,18 +107,18 @@ def get_config():
         return json_data
 
 
-def login_naver(driver, id, pw):
-    # element = driver.find_element_by_css_selector('#id')
-    element = driver.find_element(By.ID, 'id')
-    element.send_keys(id)
-    element = driver.find_element(By.ID,'pw')
-    element.send_keys(pw)
-    element = driver.find_element(By.ID,'log.login')
-    element.click()
-
-    print('login succeeded')
-
-    return
+# def login_naver(driver, id, pw):
+#     # element = driver.find_element_by_css_selector('#id')
+#     element = driver.find_element(By.ID, 'id')
+#     element.send_keys(id)
+#     element = driver.find_element(By.ID,'pw')
+#     element.send_keys(pw)
+#     element = driver.find_element(By.ID,'log.login')
+#     element.click()
+#
+#     print('login succeeded')
+#
+#     return
 
 
 def login_naver_with_execute_script(driver, id, pw):
