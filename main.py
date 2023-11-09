@@ -25,13 +25,15 @@ def main():
     try:
         today = str(datetime.datetime.today()).split(' ')[0]
         chrome_options = Options()
-        chrome_options.add_argument('--incognito')
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-setuid-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
-        driver = webdriver.Chrome(options=chrome_options)
+        # chrome_options.add_argument('--incognito')
+        # chrome_options.add_argument('--headless')
+        # chrome_options.add_argument('--no-sandbox')
+        # chrome_options.add_argument('--disable-setuid-sandbox')
+        # chrome_options.add_argument('--disable-dev-shm-usage')
+        # chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+        # driver = webdriver.Chrome(options=chrome_options)
+
+        driver = webdriver.Chrome()
         config = get_config()
         driver.get(config['url'])
 
@@ -153,11 +155,17 @@ def get_guest_list(driver):
     driver.execute_script("document.body.style.zoom='25%'")
     import time
     for _ in range(20):
-        # item = driver.find_elements(By.CLASS_NAME, 'BookingListView__list-contents__3pFPD')
-        item = driver.find_elements(By.XPATH, '//*[@id="app"]/div[1]/div[2]/div[2]/div/div[2]/div[4]/div[2]')
+        item = driver.find_elements(By.XPATH,"//*[contains(@class, 'BookingListView__list-contents__')]")
+
+        # item = driver.find_elements(By.CLASS_NAME, 'BookingListView__list-contents__g037Y')  #BookingListView__list-contents__g037Y
+        # item = driver.find_elements(By.XPATH, '//*[@id="app"]/div[1]/div[2]/div[2]/div/div[2]/div[4]/div[2]')
         # item = driver.find_elements(By.CLASS_NAME, re.compile('BookingListView__list-contents__.*')) #3pFPD
-        driver.execute_script("return arguments[0].scrollTo(0,100000);", item[0])
-        time.sleep(1)
+
+        try:
+            driver.execute_script("return arguments[0].scrollTo(0,100000);", item[0])
+            time.sleep(1)
+        except Exception as e:
+            print(e)
 
 
     soup = BeautifulSoup(driver.page_source, "html.parser")
@@ -334,13 +342,13 @@ def delete_past_data(file_path):
         pandas.DataFrame(new).to_csv(file_path, mode='w', header=True, index=False, encoding='utf-8')
         print(f"Deleted {len(old)} data older than past 10 days")
 
-delete_past_data('guests.csv')
-schedule.every(5).minutes.do(main)
-while True:
-    schedule.run_pending()
+# delete_past_data('guests.csv')
+# schedule.every(5).minutes.do(main)
+# while True:
+#     schedule.run_pending()
 
-# if __name__=='__main__':
-#     while True:
-#         main()
+if __name__=='__main__':
+    while True:
+        main()
 #         time.sleep(3)
     # delete_past_data('guests.csv')
